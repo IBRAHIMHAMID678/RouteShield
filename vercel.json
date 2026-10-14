@@ -1,29 +1,27 @@
 {
-  "version": 2,
-  "buildCommand": "cd apps/web && npm install && npm run build",
-  "outputDirectory": "apps/web/dist",
-  "builds": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": ".",
+      "framework": "django"
+    },
+    "web": {
+      "root": "apps/web",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.11"
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
       }
     },
     {
-      "src": "package.json",
-      "use": "@vercel/static-build"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
     }
   ]
 }

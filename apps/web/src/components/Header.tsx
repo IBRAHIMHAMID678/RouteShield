@@ -11,13 +11,13 @@ export const Header: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-heading font-bold text-xl text-white tracking-tight">spotter</span>
+              <span className="font-heading font-bold text-xl text-white tracking-tight">RouteShield</span>
               <span className="px-2 py-0.5 text-xs font-mono font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 Weather-Aware Routing
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Commercial Fleet Safety & Operational Risk Evaluation System
+              Commercial Fleet Safety & Operational Risk Evaluation Platform
             </p>
           </div>
         </div>

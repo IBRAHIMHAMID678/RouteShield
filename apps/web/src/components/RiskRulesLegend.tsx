@@ -14,7 +14,7 @@ export const RiskRulesLegend: React.FC = () => {
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-emerald-400" />
           <h4 className="font-heading font-bold text-sm text-white group-hover:text-emerald-400 transition">
-            Spotter Specification & Decision Rules Reference
+            RouteShield Safety Standards & Threshold Reference
           </h4>
         </div>
         <div className="flex items-center gap-2 text-xs font-mono text-slate-400">

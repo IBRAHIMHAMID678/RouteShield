@@ -188,7 +188,7 @@ export const App: React.FC = () => {
       </main>
 
       <footer className="border-t border-slate-900 bg-[#060910] py-6 px-4 text-center text-xs text-slate-500 font-mono">
-        <p>Spotter Take-Home Assessment · Weather-Aware Truck Routing Engine · React 18 + Django 5 + MapLibre/Leaflet</p>
+        <p>RouteShield™ Fleet Intelligence · Weather-Aware Commercial Routing & Operational Risk Engine</p>
       </footer>
     </div>
   );

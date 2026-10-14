@@ -39,6 +39,9 @@ node_modules/
 .npm
 .eslintcache
 
+# Documents
+*.pdf
+
 # Testing & IDE
 .pytest_cache/
 .coverage

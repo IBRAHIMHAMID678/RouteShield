@@ -10,7 +10,7 @@ RUN npm run build
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=7860
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ COPY --from=frontend-builder /app/web/dist /app/apps/web/dist
 # Collect static files for WhiteNoise
 RUN python manage.py collectstatic --noinput
 
-EXPOSE 8000
+EXPOSE 7860
 
 # Start Gunicorn WSGI server
-CMD ["sh", "-c", "gunicorn apps.api.config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120"]
+CMD ["sh", "-c", "gunicorn apps.api.config.wsgi:application --bind 0.0.0.0:${PORT:-7860} --workers 3 --timeout 120"]

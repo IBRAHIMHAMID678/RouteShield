@@ -1,3 +1,13 @@
+---
+title: RouteShield
+emoji: 🚛
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # RouteShield — Weather-Aware Commercial Fleet Routing Platform
 
 > Enterprise fleet decision-support system that evaluates highway route corridors, samples high-resolution meteorological forecasts at vehicle estimated arrival times (ETA), applies load-dependent aerodynamic and precipitation hazard models, and deterministically recommends the safest transit corridor using a multi-tier risk hierarchy.

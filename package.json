@@ -1,0 +1,8 @@
+{
+  "name": "routeshield",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd apps/web && npm install && npm run build"
+  }
+}

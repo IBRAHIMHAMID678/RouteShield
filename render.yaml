@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: spotter-weather-truck-routing
+    runtime: docker
+    plan: free
+    region: oregon
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: ROUTING_PROVIDER
+        value: "osrm"
+      - key: WEATHER_PROVIDER
+        value: "openmeteo"
+      - key: PYTHONUNBUFFERED
+        value: "1"

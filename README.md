@@ -1,24 +1,23 @@
-# Weather-Aware Truck Routing — Spotter Assessment
+# RouteShield — Weather-Aware Truck Routing & Fleet Safety Engine
 
 > A commercial fleet decision-support system that evaluates alternative routes, samples hourly weather at truck arrival times, applies load-dependent hazard rules, and recommends the safest route using a deterministic 4-tier decision hierarchy.
 
-[![Automated Test Suite](https://img.shields.io/badge/pytest-42%20passed-emerald?style=for-the-badge&logo=pytest)](file:///d:/TASK/pytest.ini)
-[![Python](https://img.shields.io/badge/python-3.11+-blue?style=for-the-badge&logo=python)](file:///d:/TASK/requirements.txt)
-[![Django](https://img.shields.io/badge/django-5.1-emerald?style=for-the-badge&logo=django)](file:///d:/TASK/apps/api)
-[![React](https://img.shields.io/badge/react-18.3-cyan?style=for-the-badge&logo=react)](file:///d:/TASK/apps/web)
-[![TypeScript](https://img.shields.io/badge/typescript-5.7-blue?style=for-the-badge&logo=typescript)](file:///d:/TASK/apps/web)
+[![Automated Test Suite](https://img.shields.io/badge/pytest-42%20passed-emerald?style=for-the-badge&logo=pytest)](pytest.ini)
+[![Python](https://img.shields.io/badge/python-3.11+-blue?style=for-the-badge&logo=python)](requirements.txt)
+[![Django](https://img.shields.io/badge/django-5.1-emerald?style=for-the-badge&logo=django)](apps/api)
+[![React](https://img.shields.io/badge/react-18.3-cyan?style=for-the-badge&logo=react)](apps/web)
+[![TypeScript](https://img.shields.io/badge/typescript-5.7-blue?style=for-the-badge&logo=typescript)](apps/web)
 
 ---
 
 ## 📋 Table of Contents
 1. [Executive Summary](#-executive-summary)
 2. [Architecture & System Design](#-architecture--system-design)
-3. [Spotter Decision Logic & Risk Rules](#-spotter-decision-logic--risk-rules)
+3. [Decision Logic & Fleet Risk Rules](#-decision-logic--fleet-risk-rules)
 4. [Key Engineering Decisions](#-key-engineering-decisions)
 5. [Local Development Quickstart](#-local-development-quickstart)
 6. [Automated Test Suite (42 Tests)](#-automated-test-suite)
 7. [Deployment (Render / Docker)](#-deployment)
-8. [Loom Video Walkthrough](#-loom-video-walkthrough)
 
 ---
 
@@ -26,11 +25,11 @@
 
 Commercial freight operations face severe safety risks when heavy tractor-trailers encounter localized high-wind events, heavy rain, or lake-effect snow. A wind speed of 45 mph might be manageable for an unladen flatbed, but poses a catastrophic rollover risk for a top-heavy 42,000 lb trailer.
 
-This application solves this by:
+**RouteShield** solves this by:
 1. **Generating 3 route options** via OSRM highway routing.
 2. **Sampling checkpoints every 10, 25, or 50 miles**, calculating cumulative distance and time-interpolated estimated arrival times (ETA).
 3. **Retrieving hourly weather forecasts** for each checkpoint at its exact ETA via the Open-Meteo API.
-4. **Applying Spotter's risk rules and cargo load modifiers** deterministically.
+4. **Applying deterministic risk rules and cargo load modifiers**.
 5. **Selecting the recommended route** using a 4-tier lexicographical preference order.
 6. **Visualizing routes, risk-segmented polylines, and interactive checkpoints** on an agency-grade dark HUD map.
 7. **Providing a 0–48 hour corridor weather heatmap slider** with scrub and animation controls to evaluate departure delays.
@@ -40,7 +39,7 @@ This application solves this by:
 ## 🏛️ Architecture & System Design
 
 ```
-[ Frontend: React 18 + TypeScript + Vite + MapLibre/Leaflet + Lucide Icons ]
+[ Frontend: React 18 + TypeScript + Vite + Leaflet + Lucide Icons ]
                                    │
                                    ▼ REST API (/api/v1/)
 [ Django 5 Backend & DRF ]
@@ -60,7 +59,7 @@ This application solves this by:
 
 ---
 
-## ⚖️ Spotter Decision Logic & Risk Rules
+## ⚖️ Decision Logic & Fleet Risk Rules
 
 ### 1. Checkpoint Weather Thresholds
 | Condition | Low | Moderate | High | Severe | No Travel |
@@ -92,8 +91,8 @@ RecommendationKey = tuple[int, float, float, float, float]
 
 ## 🛠️ Key Engineering Decisions
 
-1. **Why Leaflet with CartoDB Dark Matter instead of Mapbox GL?**
-   * Mapbox requires private billing tokens that fail when reviewers evaluate without environment keys. Leaflet with CartoDB Dark Matter is completely open, zero-token, highly reliable, and renders custom colored polylines and canvas heatmap bubbles smoothly at 60fps.
+1. **Why Leaflet with OpenStreetMap Humanitarian & High-Contrast Night Shading?**
+   * Mapbox requires private billing tokens that fail when reviewers evaluate without environment keys. Leaflet with OSM Humanitarian tiles is completely open, zero-token, highly reliable, and renders custom colored polylines and canvas heatmap bubbles smoothly at 60fps without watermarks.
 2. **Why Open-Meteo?**
    * Unlike OpenWeatherMap or WeatherAPI which require credit cards or paid tiers for hourly forecasts, Open-Meteo provides free, high-accuracy hourly forecasts for commercial wind, precipitation, and snow up to 7 days ahead with zero rate-limit blocks.
 3. **Why Dual Provider Mode?**
@@ -109,8 +108,8 @@ RecommendationKey = tuple[int, float, float, float, float]
 
 ### 1. Clone & Set Up Backend
 ```bash
-git clone <repo-url>
-cd <repo-folder>
+git clone https://github.com/IBRAHIMHAMID678/RouteShield.git
+cd RouteShield
 
 # Create & activate virtual environment
 python -m venv .venv
@@ -157,26 +156,14 @@ pytest apps/api -v
 ## 🚢 Deployment
 
 ### 1-Click Render Deployment
-The project includes a ready-to-use [`render.yaml`](file:///d:/TASK/render.yaml) Blueprint:
+The project includes a ready-to-use [`render.yaml`](render.yaml) Blueprint:
 1. Connect your GitHub repository to [Render.com](https://render.com).
 2. Click **New +** $\rightarrow$ **Blueprint**.
-3. Select this repository. Render automatically builds the multi-stage Docker container and launches the service.
+3. Select the **RouteShield** repository. Render automatically builds the multi-stage container and launches the service.
 
 ### Docker Build & Run Locally
 ```bash
-docker build -t spotter-weather-routing .
-docker run -p 8000:8000 spotter-weather-routing
+docker build -t routeshield .
+docker run -p 8000:8000 routeshield
 ```
 Visit [http://localhost:8000](http://localhost:8000) to view the unified production application.
-
----
-
-## 🎥 Loom Video Walkthrough
-
-A structured 5–10 minute video demonstration script is provided in [`docs/LOOM_SCRIPT.md`](file:///d:/TASK/docs/LOOM_SCRIPT.md).
-It walks through:
-1. Executive introduction and safety domain overview.
-2. Architecture and pure domain logic.
-3. Live interactive demo (Denver $\rightarrow$ Salt Lake City, load weight variations).
-4. Interactive checkpoint inspections and 0–48h timeline scrubber.
-5. Automated test suite execution in the terminal.

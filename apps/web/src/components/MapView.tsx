@@ -34,9 +34,11 @@ export const MapView: React.FC<Props> = ({
     const map = L.map(mapContainerRef.current, {
       center: [39.8283, -98.5795], // Center of US
       zoom: 5,
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: false,
     });
+
+    L.control.zoom({ position: "topright" }).addTo(map);
 
     // OpenStreetMap Humanitarian (HOT): Free, no API key required, clear terrain & road networks
     L.tileLayer(
@@ -132,42 +134,42 @@ export const MapView: React.FC<Props> = ({
           fillOpacity: 0.95,
         });
 
-        // Rich HTML Popup HUD
+        // Rich HTML Popup HUD with clean light styling
         const popupHtml = `
-          <div style="font-family: Inter, sans-serif; min-width: 210px; padding: 2px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 8px;">
-              <span style="font-weight: 700; color: #f8fafc; font-size: 13px;">
+          <div style="font-family: Inter, sans-serif; min-width: 200px; padding: 2px; color: #0f172a;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 6px;">
+              <span style="font-weight: 700; color: #0f172a; font-size: 13px;">
                 ${isFirst ? "🏁 Origin" : isLast ? "📍 Destination" : `Checkpoint #${idx}`}
               </span>
-              <span style="font-size: 11px; font-family: monospace; background: ${markerColor}22; color: ${markerColor}; border: 1px solid ${markerColor}66; border-radius: 4px; padding: 1px 6px; font-weight: bold;">
+              <span style="font-size: 11px; font-family: monospace; background: ${markerColor}18; color: ${markerColor}; border: 1px solid ${markerColor}44; border-radius: 4px; padding: 1px 6px; font-weight: bold;">
                 ${chk.risk?.level_label || "Low"}
               </span>
             </div>
 
-            <div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin-bottom: 6px;">
-              <div>Mile: <b>${chk.distance_from_origin_miles.toFixed(1)} mi</b></div>
-              <div>ETA: <b>${new Date(chk.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} UTC</b></div>
+            <div style="font-size: 11px; color: #64748b; font-family: monospace; margin-bottom: 6px;">
+              <div>Mile: <b style="color: #0f172a;">${chk.distance_from_origin_miles.toFixed(1)} mi</b></div>
+              <div>ETA: <b style="color: #0f172a;">${new Date(chk.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} UTC</b></div>
             </div>
 
             ${chk.weather ? `
-              <div style="background: #1e293b88; border-radius: 6px; padding: 6px 8px; font-size: 11px; margin-bottom: 6px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                  <span style="color: #cbd5e1;">💨 Wind:</span>
-                  <span style="font-weight: bold; color: #f8fafc;">${chk.weather.wind_mph.toFixed(1)} mph</span>
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; font-size: 11px; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                  <span style="color: #475569;">💨 Wind:</span>
+                  <span style="font-weight: bold; color: #0f172a;">${chk.weather.wind_mph.toFixed(1)} mph</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                  <span style="color: #cbd5e1;">🌧️ Rain:</span>
-                  <span style="font-weight: bold; color: #f8fafc;">${chk.weather.rain_in_per_hr.toFixed(2)} in/hr</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                  <span style="color: #475569;">🌧️ Rain:</span>
+                  <span style="font-weight: bold; color: #0f172a;">${chk.weather.rain_in_per_hr.toFixed(2)} in/hr</span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #cbd5e1;">❄️ Snow:</span>
-                  <span style="font-weight: bold; color: #f8fafc;">${chk.weather.snow_in_per_hr.toFixed(2)} in/hr</span>
+                  <span style="color: #475569;">❄️ Snow:</span>
+                  <span style="font-weight: bold; color: #0f172a;">${chk.weather.snow_in_per_hr.toFixed(2)} in/hr</span>
                 </div>
               </div>
-            ` : '<div style="color: #ef4444; font-size: 11px;">⚠️ Weather unavailable</div>'}
+            ` : '<div style="color: #dc2626; font-size: 11px;">⚠️ Weather unavailable</div>'}
 
             ${chk.risk?.reasons && chk.risk.reasons.length > 0 ? `
-              <div style="font-size: 10px; color: #cbd5e1; border-top: 1px dashed #334155; padding-top: 4px;">
+              <div style="font-size: 10px; color: #475569; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
                 ${chk.risk.reasons[chk.risk.reasons.length - 1]}
               </div>
             ` : ""}
@@ -178,10 +180,13 @@ export const MapView: React.FC<Props> = ({
         layersRef.current.checkpointsGroup.addLayer(circleMarker);
       });
 
-      // Fit map to active route coordinates
+      // Fit map to active route coordinates with sidebar offset padding
       const activeCoords = activeRoute.geometry_geojson.coordinates.map((c) => [c[1], c[0]] as [number, number]);
       if (activeCoords.length > 0) {
-        map.fitBounds(L.latLngBounds(activeCoords), { padding: [40, 40] });
+        map.fitBounds(L.latLngBounds(activeCoords), {
+          paddingTopLeft: [420, 60],
+          paddingBottomRight: [60, 60],
+        });
       }
     }
   }, [routes, activeRouteId]);
@@ -231,12 +236,12 @@ export const MapView: React.FC<Props> = ({
   }, [corridorGrid]);
 
   return (
-    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Map Legend Overlay */}
-      <div className="absolute bottom-4 left-4 z-[400] glass-panel px-3 py-2 rounded-xl border border-slate-800 text-xs font-mono shadow-xl flex items-center gap-3">
-        <span className="text-slate-400 font-semibold">Risk:</span>
+      {/* Map Legend Overlay (floating bottom-right) */}
+      <div className="absolute bottom-6 right-6 z-[400] bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono shadow-md flex items-center gap-3 text-slate-700">
+        <span className="text-slate-400 font-semibold uppercase text-[10px]">Risk:</span>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
           <span>Low</span>

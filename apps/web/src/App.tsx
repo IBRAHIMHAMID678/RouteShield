@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Header } from "./components/Header";
-import { RouteInputForm } from "./components/RouteInputForm";
-import { RouteComparison } from "./components/RouteComparison";
+import { SidebarDrawer } from "./components/SidebarDrawer";
 import { MapView } from "./components/MapView";
 import { CorridorSlider } from "./components/CorridorSlider";
-import { RiskRulesLegend } from "./components/RiskRulesLegend";
+import { RiskRulesModal } from "./components/RiskRulesModal";
 import { RouteOption, RoutePlanRequest, CorridorGridCell } from "./types";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, PanelLeftClose, PanelLeftOpen, Layers } from "lucide-react";
 
 export const App: React.FC = () => {
   const [routes, setRoutes] = useState<RouteOption[]>([]);
@@ -18,6 +16,8 @@ export const App: React.FC = () => {
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isRulesOpen, setIsRulesOpen] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Active route bounding box for the corridor grid
   const [boundingCoords, setBoundingCoords] = useState<{
@@ -55,7 +55,6 @@ export const App: React.FC = () => {
       setRoutes(evaluatedRoutes);
 
       if (evaluatedRoutes.length > 0) {
-        // Find recommended route or fallback to first
         const recommended = evaluatedRoutes.find((r) => r.is_recommended) || evaluatedRoutes[0];
         setActiveRouteId(recommended.route_id);
 
@@ -119,77 +118,95 @@ export const App: React.FC = () => {
     }
   };
 
-  // Initial Benchmark Load on mount: Denver to Salt Lake City
+  // Initial Benchmark Load on mount: Chicago to Dallas
   useEffect(() => {
     handleEvaluateRoutes({
-      origin_lat: 39.7392,
-      origin_lon: -104.9903,
-      dest_lat: 40.7608,
-      dest_lon: -111.8910,
-      origin_name: "Denver, CO",
-      dest_name: "Salt Lake City, UT",
+      origin_lat: 41.8781,
+      origin_lon: -87.6298,
+      dest_lat: 32.7767,
+      dest_lon: -96.7970,
+      origin_name: "Chicago, IL",
+      dest_name: "Dallas, TX",
       departure_time: departureTime,
-      load_weight_lb: 42000,
+      load_weight_lb: 38000,
       sampling_interval_miles: 25.0,
     });
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col">
-      <Header />
+    <div className="relative w-screen h-screen overflow-hidden bg-slate-100 font-sans">
+      {/* 1. Full-Bleed Map View */}
+      <MapView
+        routes={routes}
+        activeRouteId={activeRouteId}
+        corridorGrid={corridorGrid}
+      />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-        {/* Error notification banner */}
-        {errorMsg && (
-          <div className="p-4 rounded-xl bg-red-950/60 border border-red-800 text-red-200 flex items-center justify-between gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-            <button
-              onClick={() => setErrorMsg(null)}
-              className="text-xs font-mono underline hover:text-white"
-            >
-              Dismiss
-            </button>
+      {/* 2. Floating Left Sidebar Drawer */}
+      {isSidebarOpen && (
+        <SidebarDrawer
+          routes={routes}
+          activeRouteId={activeRouteId}
+          onSelectRoute={(id) => setActiveRouteId(id)}
+          onSubmit={handleEvaluateRoutes}
+          isLoading={isLoading}
+          onOpenRules={() => setIsRulesOpen(true)}
+        />
+      )}
+
+      {/* Sidebar Toggle Button */}
+      <button
+        type="button"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        title={isSidebarOpen ? "Collapse Sidebar" : "Open Trip Planner"}
+        className={`absolute top-4 z-[600] p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-md hover:bg-slate-50 transition cursor-pointer flex items-center justify-center ${
+          isSidebarOpen ? "left-[412px]" : "left-4"
+        }`}
+      >
+        {isSidebarOpen ? (
+          <PanelLeftClose className="w-4 h-4 text-slate-600" />
+        ) : (
+          <PanelLeftOpen className="w-4 h-4 text-teal-700" />
+        )}
+      </button>
+
+      {/* 3. Floating 0-48h Corridor Forecast Slider (Bottom Center) */}
+      <div
+        className={`absolute bottom-6 z-[400] transition-all duration-300 ${
+          isSidebarOpen
+            ? "left-[430px] right-24 max-w-2xl"
+            : "left-6 right-24 max-w-2xl mx-auto"
+        }`}
+      >
+        <CorridorSlider
+          offsetHours={offsetHours}
+          departureTime={departureTime}
+          onOffsetChange={handleOffsetChange}
+        />
+      </div>
+
+      {/* 4. Floating Error Toast */}
+      {errorMsg && (
+        <div className="absolute top-4 right-4 z-[1000] p-4 max-w-md bg-white border border-red-200 rounded-2xl shadow-xl flex items-start gap-3 text-xs text-red-700 animate-slide-in">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-bold block mb-0.5">Route Calculation Warning</span>
+            <span>{errorMsg}</span>
           </div>
-        )}
-
-        {/* Input Form */}
-        <RouteInputForm onSubmit={handleEvaluateRoutes} isLoading={isLoading} />
-
-        {/* Route Comparison Cards */}
-        {routes.length > 0 && (
-          <RouteComparison
-            routes={routes}
-            activeRouteId={activeRouteId}
-            onSelectRoute={(id) => setActiveRouteId(id)}
-          />
-        )}
-
-        {/* Map View & Heatmap */}
-        <div className="space-y-4">
-          <MapView
-            routes={routes}
-            activeRouteId={activeRouteId}
-            corridorGrid={corridorGrid}
-          />
-
-          {/* 0-48h Corridor Forecast Slider */}
-          <CorridorSlider
-            offsetHours={offsetHours}
-            departureTime={departureTime}
-            onOffsetChange={handleOffsetChange}
-          />
+          <button
+            onClick={() => setErrorMsg(null)}
+            className="text-slate-400 hover:text-slate-600 font-bold ml-2 text-sm"
+          >
+            ×
+          </button>
         </div>
+      )}
 
-        {/* Specification & Rules Legend */}
-        <RiskRulesLegend />
-      </main>
-
-      <footer className="border-t border-slate-900 bg-[#060910] py-6 px-4 text-center text-xs text-slate-500 font-mono">
-        <p>RouteShield™ Fleet Intelligence · Weather-Aware Commercial Routing & Operational Risk Engine</p>
-      </footer>
+      {/* 5. Safety Rules Reference Modal */}
+      <RiskRulesModal
+        isOpen={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
+      />
     </div>
   );
 };

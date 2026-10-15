@@ -140,7 +140,16 @@ export const App: React.FC = () => {
         routes={routes}
         activeRouteId={activeRouteId}
         corridorGrid={corridorGrid}
+        isSidebarOpen={isSidebarOpen}
       />
+
+      {/* Mobile Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          className="lg:hidden fixed inset-0 z-[450] bg-slate-900/40 backdrop-blur-xs transition-opacity"
+        />
+      )}
 
       {/* 2. Floating Left Sidebar Drawer */}
       {isSidebarOpen && (
@@ -151,31 +160,43 @@ export const App: React.FC = () => {
           onSubmit={handleEvaluateRoutes}
           isLoading={isLoading}
           onOpenRules={() => setIsRulesOpen(true)}
+          onClose={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar Toggle Button */}
-      <button
-        type="button"
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        title={isSidebarOpen ? "Collapse Sidebar" : "Open Trip Planner"}
-        className={`absolute top-4 z-[600] p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-md hover:bg-slate-50 transition cursor-pointer flex items-center justify-center ${
-          isSidebarOpen ? "left-[412px]" : "left-4"
-        }`}
-      >
-        {isSidebarOpen ? (
+      {isSidebarOpen ? (
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(false)}
+          title="Collapse Sidebar"
+          className="hidden lg:flex absolute top-4 left-[416px] z-[600] p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-md hover:bg-slate-50 transition cursor-pointer items-center justify-center"
+        >
           <PanelLeftClose className="w-4 h-4 text-slate-600" />
-        ) : (
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          title="Open Trip Planner"
+          className="absolute top-4 left-4 z-[600] py-2 px-3 sm:p-2.5 rounded-xl bg-white border border-slate-200 text-teal-800 shadow-md hover:bg-slate-50 transition cursor-pointer flex items-center gap-2"
+        >
           <PanelLeftOpen className="w-4 h-4 text-teal-700" />
-        )}
-      </button>
+          <span className="text-xs font-semibold sm:inline">Plan Trip</span>
+          {routes.length > 0 && (
+            <span className="w-4 h-4 rounded-full bg-teal-100 text-teal-800 text-[10px] flex items-center justify-center font-mono">
+              {routes.length}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* 3. Floating 0-48h Corridor Forecast Slider (Bottom Center) */}
       <div
-        className={`absolute bottom-6 z-[400] transition-all duration-300 ${
+        className={`absolute bottom-3 sm:bottom-6 z-[400] transition-all duration-300 ${
           isSidebarOpen
-            ? "left-[430px] right-24 max-w-2xl"
-            : "left-6 right-24 max-w-2xl mx-auto"
+            ? "hidden lg:block lg:left-[436px] lg:right-6 lg:max-w-2xl"
+            : "left-2.5 right-2.5 sm:left-6 sm:right-6 max-w-2xl mx-auto"
         }`}
       >
         <CorridorSlider

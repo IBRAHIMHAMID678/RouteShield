@@ -7,6 +7,7 @@ interface Props {
   routes: RouteOption[];
   activeRouteId: string;
   corridorGrid: CorridorGridCell[];
+  isSidebarOpen?: boolean;
   onSelectCheckpoint?: (chk: Checkpoint) => void;
 }
 
@@ -14,6 +15,7 @@ export const MapView: React.FC<Props> = ({
   routes,
   activeRouteId,
   corridorGrid,
+  isSidebarOpen = true,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -56,11 +58,35 @@ export const MapView: React.FC<Props> = ({
 
     mapInstanceRef.current = map;
 
+    // Fluid responsiveness: invalidate map size on container resize and window resize
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Invalidate map layout whenever the sidebar drawer expands or collapses
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isSidebarOpen]);
 
   // Update Routes and Checkpoints when routes or activeRouteId change
   useEffect(() => {
@@ -180,16 +206,18 @@ export const MapView: React.FC<Props> = ({
         layersRef.current.checkpointsGroup.addLayer(circleMarker);
       });
 
-      // Fit map to active route coordinates with sidebar offset padding
+      // Fit map to active route coordinates with responsive sidebar offset padding
       const activeCoords = activeRoute.geometry_geojson.coordinates.map((c) => [c[1], c[0]] as [number, number]);
       if (activeCoords.length > 0) {
+        const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024 && isSidebarOpen;
         map.fitBounds(L.latLngBounds(activeCoords), {
-          paddingTopLeft: [420, 60],
-          paddingBottomRight: [60, 60],
+          paddingTopLeft: isDesktop ? [430, 40] : [24, 24],
+          paddingBottomRight: [24, 40],
+          maxZoom: 13,
         });
       }
     }
-  }, [routes, activeRouteId]);
+  }, [routes, activeRouteId, isSidebarOpen]);
 
   // Update Corridor Heatmap Grid when corridorGrid changes
   useEffect(() => {
@@ -239,28 +267,28 @@ export const MapView: React.FC<Props> = ({
     <div className="absolute inset-0 w-full h-full overflow-hidden">
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Map Legend Overlay (floating bottom-right) */}
-      <div className="absolute bottom-6 right-6 z-[400] bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono shadow-md flex items-center gap-3 text-slate-700">
-        <span className="text-slate-400 font-semibold uppercase text-[10px]">Risk:</span>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
+      {/* Map Legend Overlay (floating top-right on mobile, bottom-right on desktop) */}
+      <div className="absolute top-4 right-14 sm:top-auto sm:bottom-6 sm:right-6 z-[400] bg-white/95 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 text-[10px] sm:text-xs font-mono shadow-md flex items-center gap-2 sm:gap-3 text-slate-700">
+        <span className="text-slate-400 font-semibold uppercase text-[9px] sm:text-[10px]">Risk:</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#10b981]" />
           <span>Low</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
-          <span>Mod</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#f59e0b]" />
+          <span className="hidden xs:inline">Mod</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-          <span>High</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#f97316]" />
+          <span className="hidden xs:inline">High</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
-          <span>Severe</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#ef4444]" />
+          <span>Sev</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#991b1b]" />
-          <span>No Travel</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#991b1b]" />
+          <span>Stop</span>
         </div>
       </div>
     </div>

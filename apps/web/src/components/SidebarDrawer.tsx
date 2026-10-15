@@ -16,8 +16,11 @@ import {
   CheckCircle2,
   ChevronRight,
   BookOpen,
-  Info
+  Info,
+  X,
+  ArrowUpDown,
 } from "lucide-react";
+import { searchLocalCities, resolveLocationCoords, CityLocation } from "../utils/cities";
 
 interface Props {
   routes: RouteOption[];
@@ -26,6 +29,7 @@ interface Props {
   onSubmit: (params: RoutePlanRequest) => void;
   isLoading: boolean;
   onOpenRules: () => void;
+  onClose?: () => void;
 }
 
 const PRESETS = [
@@ -71,17 +75,24 @@ export const SidebarDrawer: React.FC<Props> = ({
   onSubmit,
   isLoading,
   onOpenRules,
+  onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<"plan" | "routes">("plan");
 
-  // Form State: Default to benchmark corridor Denver -> Salt Lake
-  const [originName, setOriginName] = useState("Denver, CO");
-  const [originLat, setOriginLat] = useState(39.7392);
-  const [originLon, setOriginLon] = useState(-104.9903);
+  // Form State: Default to benchmark corridor Chicago -> Dallas
+  const [originName, setOriginName] = useState("Chicago, IL");
+  const [originLat, setOriginLat] = useState(41.8781);
+  const [originLon, setOriginLon] = useState(-87.6298);
 
-  const [destName, setDestName] = useState("Salt Lake City, UT");
-  const [destLat, setDestLat] = useState(40.7608);
-  const [destLon, setDestLon] = useState(-111.8910);
+  const [destName, setDestName] = useState("Dallas, TX");
+  const [destLat, setDestLat] = useState(32.7767);
+  const [destLon, setDestLon] = useState(-96.7970);
+
+  const [originSuggestions, setOriginSuggestions] = useState<CityLocation[]>([]);
+  const [destSuggestions, setDestSuggestions] = useState<CityLocation[]>([]);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   const defaultDeparture = new Date(Date.now() + 2 * 3600 * 1000)
     .toISOString()
@@ -91,13 +102,106 @@ export const SidebarDrawer: React.FC<Props> = ({
   const [loadWeight, setLoadWeight] = useState<number>(38000);
   const [interval, setInterval] = useState<number>(25);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleOriginChange = (val: string) => {
+    setOriginName(val);
+    setGeoError(null);
+    if (val.trim().length >= 2) {
+      const results = searchLocalCities(val);
+      setOriginSuggestions(results);
+      setShowOriginSuggestions(results.length > 0);
+    } else {
+      setShowOriginSuggestions(false);
+    }
+  };
+
+  const handleSelectOrigin = (city: CityLocation) => {
+    const fullName = `${city.name}, ${city.state}`;
+    setOriginName(fullName);
+    setOriginLat(city.lat);
+    setOriginLon(city.lon);
+    setShowOriginSuggestions(false);
+    setGeoError(null);
+  };
+
+  const handleDestChange = (val: string) => {
+    setDestName(val);
+    setGeoError(null);
+    if (val.trim().length >= 2) {
+      const results = searchLocalCities(val);
+      setDestSuggestions(results);
+      setShowDestSuggestions(results.length > 0);
+    } else {
+      setShowDestSuggestions(false);
+    }
+  };
+
+  const handleSelectDest = (city: CityLocation) => {
+    const fullName = `${city.name}, ${city.state}`;
+    setDestName(fullName);
+    setDestLat(city.lat);
+    setDestLon(city.lon);
+    setShowDestSuggestions(false);
+    setGeoError(null);
+  };
+
+  const handleSwap = () => {
+    const tempName = originName;
+    const tempLat = originLat;
+    const tempLon = originLon;
+
+    setOriginName(destName);
+    setOriginLat(destLat);
+    setOriginLon(destLon);
+
+    setDestName(tempName);
+    setDestLat(tempLat);
+    setDestLon(tempLon);
+    setShowOriginSuggestions(false);
+    setShowDestSuggestions(false);
+    setGeoError(null);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGeoError(null);
+
+    let curOriginLat = originLat;
+    let curOriginLon = originLon;
+    let curDestLat = destLat;
+    let curDestLon = destLon;
+
+    // Check if origin was resolved
+    const resolvedOrigin = await resolveLocationCoords(originName);
+    if (resolvedOrigin) {
+      curOriginLat = resolvedOrigin.lat;
+      curOriginLon = resolvedOrigin.lon;
+      setOriginLat(curOriginLat);
+      setOriginLon(curOriginLon);
+    } else if (!curOriginLat) {
+      setGeoError(`Could not locate origin: "${originName}". Please pick a US city from suggestions.`);
+      return;
+    }
+
+    // Check if destination was resolved
+    const resolvedDest = await resolveLocationCoords(destName);
+    if (resolvedDest) {
+      curDestLat = resolvedDest.lat;
+      curDestLon = resolvedDest.lon;
+      setDestLat(curDestLat);
+      setDestLon(curDestLon);
+    } else if (!curDestLat) {
+      setGeoError(`Could not locate destination: "${destName}". Please pick a US city from suggestions.`);
+      return;
+    }
+
+    setShowOriginSuggestions(false);
+    setShowDestSuggestions(false);
+
     onSubmit({
-      origin_lat: originLat,
-      origin_lon: originLon,
-      dest_lat: destLat,
-      dest_lon: destLon,
+      origin_lat: curOriginLat,
+      origin_lon: curOriginLon,
+      dest_lat: curDestLat,
+      dest_lon: curDestLon,
       origin_name: originName,
       dest_name: destName,
       departure_time: new Date(departureTime).toISOString(),
@@ -114,6 +218,9 @@ export const SidebarDrawer: React.FC<Props> = ({
     setDestLat(preset.dest_lat);
     setDestLon(preset.dest_lon);
     setLoadWeight(preset.weight);
+    setShowOriginSuggestions(false);
+    setShowDestSuggestions(false);
+    setGeoError(null);
   };
 
   // Switch to routes tab automatically when routes arrive
@@ -124,9 +231,9 @@ export const SidebarDrawer: React.FC<Props> = ({
   }, [routes]);
 
   return (
-    <aside className="absolute top-4 left-4 bottom-6 w-[400px] max-w-[calc(100vw-32px)] z-[500] flex flex-col bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.12)] border border-slate-200 overflow-hidden text-slate-800">
+    <aside className="fixed sm:absolute top-2 sm:top-4 left-2 sm:left-4 bottom-2 sm:bottom-6 w-[calc(100vw-16px)] sm:w-[400px] max-w-[420px] z-[500] flex flex-col bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden text-slate-800 transition-all">
       {/* Brand Header */}
-      <div className="p-5 pb-3 border-b border-slate-100">
+      <div className="p-4 sm:p-5 pb-3 border-b border-slate-100">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-teal-700 flex items-center justify-center text-white shadow-sm">
@@ -138,9 +245,21 @@ export const SidebarDrawer: React.FC<Props> = ({
               </span>
             </div>
           </div>
-          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
-            Weather-Aware
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+              Weather-Aware
+            </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                title="Close drawer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -213,40 +332,128 @@ export const SidebarDrawer: React.FC<Props> = ({
             </div>
 
             {/* Origin Input */}
-            <div className="relative border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600 transition">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                Origin
-              </label>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-teal-700 shrink-0" />
-                <input
-                  type="text"
-                  value={originName}
-                  onChange={(e) => setOriginName(e.target.value)}
-                  placeholder="e.g. Chicago, IL"
-                  className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none"
-                  required
-                />
+            <div className="relative">
+              <div className="border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600 transition bg-white">
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Origin
+                  </label>
+                  <span className="text-[10px] font-mono text-emerald-600 font-semibold">
+                    GPS [{originLat.toFixed(1)}, {originLon.toFixed(1)}] ✓
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-teal-700 shrink-0" />
+                  <input
+                    type="text"
+                    value={originName}
+                    onChange={(e) => handleOriginChange(e.target.value)}
+                    onFocus={() => {
+                      if (originName.trim().length >= 2) {
+                        const res = searchLocalCities(originName);
+                        setOriginSuggestions(res);
+                        setShowOriginSuggestions(res.length > 0);
+                      }
+                    }}
+                    placeholder="e.g. New York, NY"
+                    className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none"
+                    required
+                  />
+                </div>
               </div>
+
+              {/* Origin Autocomplete Suggestions */}
+              {showOriginSuggestions && originSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[700] py-1 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Suggested US Freight Hubs
+                  </div>
+                  {originSuggestions.map((c) => (
+                    <button
+                      key={`orig-${c.name}-${c.state}`}
+                      type="button"
+                      onClick={() => handleSelectOrigin(c)}
+                      className="w-full px-3 py-1.5 text-left text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-900 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <span className="font-semibold">{c.name}, {c.state}</span>
+                      <span className="text-[10px] font-mono text-slate-400">[{c.lat.toFixed(2)}, {c.lon.toFixed(2)}]</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Origin <-> Destination Swap Button */}
+            <div className="flex justify-center -my-2 relative z-10">
+              <button
+                type="button"
+                onClick={handleSwap}
+                title="Swap Origin and Destination"
+                className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 transition shadow-xs cursor-pointer flex items-center gap-1.5 text-[11px] font-medium"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                <span>Swap Route</span>
+              </button>
             </div>
 
             {/* Destination Input */}
-            <div className="relative border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600 transition">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                Destination
-              </label>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  value={destName}
-                  onChange={(e) => setDestName(e.target.value)}
-                  placeholder="e.g. Dallas, TX"
-                  className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none"
-                  required
-                />
+            <div className="relative">
+              <div className="border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600 transition bg-white">
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Destination
+                  </label>
+                  <span className="text-[10px] font-mono text-emerald-600 font-semibold">
+                    GPS [{destLat.toFixed(1)}, {destLon.toFixed(1)}] ✓
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={destName}
+                    onChange={(e) => handleDestChange(e.target.value)}
+                    onFocus={() => {
+                      if (destName.trim().length >= 2) {
+                        const res = searchLocalCities(destName);
+                        setDestSuggestions(res);
+                        setShowDestSuggestions(res.length > 0);
+                      }
+                    }}
+                    placeholder="e.g. Los Angeles, CA"
+                    className="w-full text-sm font-semibold text-slate-900 bg-transparent outline-none"
+                    required
+                  />
+                </div>
               </div>
+
+              {/* Destination Autocomplete Suggestions */}
+              {showDestSuggestions && destSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[700] py-1 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Suggested US Freight Hubs
+                  </div>
+                  {destSuggestions.map((c) => (
+                    <button
+                      key={`dest-${c.name}-${c.state}`}
+                      type="button"
+                      onClick={() => handleSelectDest(c)}
+                      className="w-full px-3 py-1.5 text-left text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-900 flex items-center justify-between transition cursor-pointer"
+                    >
+                      <span className="font-semibold">{c.name}, {c.state}</span>
+                      <span className="text-[10px] font-mono text-slate-400">[{c.lat.toFixed(2)}, {c.lon.toFixed(2)}]</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {geoError && (
+              <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span>{geoError}</span>
+              </div>
+            )}
 
             {/* Departure Date and Time */}
             <div className="border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600 transition">
